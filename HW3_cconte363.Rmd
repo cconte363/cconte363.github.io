@@ -1,0 +1,58 @@
+---
+title: "HW@"
+author: "Chris Conte"
+date: "2023-10-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, echo=TRUE, message=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(data.table)
+```
+
+\
+Part A\
+```{r}
+raw_data<-read.table("https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/ThicknessGauge.dat", header=F, skip=2)
+cleaned_data = raw_data %>% pivot_longer(V1, values_to='part', names_to=NULL) %>% pivot_longer(-part, names_to='operator', values_to='measurement') %>% mutate(operator = floor(as.numeric(substring(operator, 2, 2))/2))
+cleaned_data %>% group_by(part) %>% summarise(avg_measurement = mean(measurement))
+ggplot(data=cleaned_data, aes(x=as.factor(part), y= measurement))+geom_boxplot()+labs(x='Part', y='Measurement')
+```
+\
+Part B\
+```{r}
+raw_data<-fread('https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/BrainandBodyWeight.dat', fill=TRUE, header=FALSE, skip = 1)
+cleaned_data = raw_data %>% pivot_longer(c(V1,V3,V5), values_to = "Body") %>% select(Body) %>% cbind(raw_data %>% pivot_longer(c(V2, V4, V6), values_to="Brain") %>% select(Brain)) %>% drop_na()
+summary(cleaned_data)
+ggplot(data = cleaned_data, aes(Brain, Body))+geom_point()
+```
+\
+Part C\
+```{r}
+raw_data<-fread('https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/LongJumpData.dat', fill=TRUE, header=FALSE, skip = 1)
+cleaned_data = raw_data %>% pivot_longer(c(V1,V3,V5, V7), values_to = "Year") %>% mutate(Year=Year+1900) %>% select(Year) %>% cbind(raw_data %>% pivot_longer(c(V2, V4, V6, V8), values_to="Distance") %>% select(Distance)) %>% drop_na()
+summary(cleaned_data)
+ggplot(data = cleaned_data, aes(Year, Distance))+geom_point()+geom_smooth()
+```
+\
+Part D\
+```{r}
+raw_data<-fread('https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/tomato.dat', fill=TRUE, header=FALSE, skip = 1)
+cleaned_data = raw_data %>% filter(row_number() != 1) %>% pivot_longer(V1, values_to = "variety", names_to = NULL) %>% pivot_longer(-variety, values_to = 'yield', names_to = 'density') %>% mutate(density = 10000*(as.numeric(substring(density, 2, 2))-1), yield = strsplit(yield, ',')) %>% unnest_longer(yield) %>% mutate(yield = as.numeric(yield), variety = gsub('\\\\', '', variety))
+cleaned_data %>% group_by(variety) %>% summarise(avg_yield = mean(yield))
+ggplot(data = cleaned_data, aes(x=variety, y=yield))+geom_violin()
+```
+
+\
+Part E\
+```{r}
+raw_data<-fread('https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/LarvaeControl.dat', fill=TRUE, header=FALSE, skip = 3)
+cleaned_data = raw_data %>% pivot_longer(V1, values_to='block', names_to = NULL) %>% pivot_longer(-block, names_to='treatment', values_to = 'count') %>% mutate(treatment = (as.numeric(gsub('V', '', treatment)) -1) %% 5) %>% mutate(treatment = ifelse(treatment==0, 5, treatment))
+summary_data = cleaned_data %>% filter(block>2) %>% group_by(treatment) %>% summarise(avg_larvae = mean(count))
+summary_data
+ggplot(data = summary_data, aes(x=treatment, y = avg_larvae))+geom_bar(stat='identity')+labs(x='Treatment', y='Avg Larvae')
+```
